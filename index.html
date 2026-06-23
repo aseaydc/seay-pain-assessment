@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>What's Driving Your Pain? | Seay Wellness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     CONFIG IS IN THE <script> AT THE BOTTOM.
+     Swap the three placeholder URLs there. Nothing else needs editing.
+     ============================================================ */
+
+  :root {
+    --surface: #EFF5FB;
+    --card: #FFFFFF;
+    --ink: #1A2A3F;
+    --ink-soft: #51647B;
+    --blue: #5987C5;
+    --blue-deep: #3E5E8A;
+    --sky: #9ACAEC;
+    --lime: #C1CC23;
+    --lime-soft: #F2F4D6;
+    --line: #D6E1EE;
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--body);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 28px 18px 48px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Contour atmosphere: terrain seen from above, fading to depth */
+  .contours {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .contours path { fill: none; stroke: var(--blue); stroke-width: 1; opacity: 0.10; }
+
+  .stage {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  /* Depth gauge */
+  .gauge { margin-bottom: 22px; }
+  .gauge-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 9px;
+  }
+  .gauge-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .gauge-depth {
+    font-family: var(--display);
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--blue-deep);
+    font-style: italic;
+  }
+  .gauge-track {
+    height: 5px;
+    background: var(--line);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--sky), var(--blue-deep));
+    border-radius: 99px;
+    transition: width 0.45s cubic-bezier(.4,0,.2,1);
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 34px 30px 30px;
+    box-shadow: 0 1px 2px rgba(21,37,31,0.04), 0 16px 40px -28px rgba(21,37,31,0.35);
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--blue-deep);
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(1.7rem, 6vw, 2.35rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+
+  .lede {
+    font-size: 1.04rem;
+    color: var(--ink-soft);
+    margin-bottom: 26px;
+    max-width: 46ch;
+  }
+
+  .q-text {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(1.35rem, 4.5vw, 1.7rem);
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+  .q-hint {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    margin-bottom: 22px;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 11px; }
+
+  .opt {
+    text-align: left;
+    width: 100%;
+    border: 1.5px solid var(--line);
+    background: #FCFDFB;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 16px 17px;
+    border-radius: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    transition: border-color .16s, background .16s, transform .08s;
+  }
+  .opt:hover { border-color: var(--blue-deep); background: #fff; }
+  .opt:active { transform: scale(0.992); }
+  .opt:focus-visible { outline: 3px solid var(--blue-deep); outline-offset: 2px; }
+  .opt .tick {
+    flex: 0 0 auto;
+    width: 22px; height: 22px;
+    border-radius: 7px;
+    border: 1.5px solid var(--line);
+    display: grid; place-items: center;
+    transition: border-color .16s, background .16s;
+  }
+  .opt .tick svg { width: 13px; height: 13px; opacity: 0; transition: opacity .12s; }
+  .opt.selected { border-color: var(--blue); background: var(--lime-soft); }
+  .opt.selected .tick { background: var(--blue); border-color: var(--blue); }
+  .opt.selected .tick svg { opacity: 1; }
+
+  .actions { margin-top: 22px; display: flex; gap: 12px; align-items: center; }
+
+  .btn {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 26px;
+    cursor: pointer;
+    transition: transform .08s, background .16s, box-shadow .16s;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 3px solid var(--blue-deep); outline-offset: 2px; }
+  .btn-primary {
+    background: var(--blue-deep);
+    color: #fff;
+    box-shadow: 0 8px 20px -10px rgba(62,94,138,0.65);
+  }
+  .btn-primary:hover { background: var(--blue); }
+  .btn-cta { background: var(--lime); color: var(--ink); box-shadow: 0 8px 20px -10px rgba(193,204,35,0.6); }
+  .btn-cta:hover { filter: brightness(1.04); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--blue);
+    border: 1.5px solid var(--line);
+  }
+  .btn-ghost:hover { border-color: var(--blue); }
+  .btn-full { width: 100%; text-align: center; }
+
+  .back {
+    background: none; border: none; cursor: pointer;
+    color: var(--ink-soft); font-family: var(--body);
+    font-size: 0.9rem; font-weight: 500; padding: 6px 2px;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 18px;
+  }
+  .back:hover { color: var(--ink); }
+  .back:focus-visible { outline: 2px solid var(--blue-deep); outline-offset: 2px; }
+
+  /* Result */
+  .result-pattern {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: var(--lime-soft); color: var(--blue-deep);
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
+    padding: 7px 13px; border-radius: 99px; margin-bottom: 16px;
+  }
+  .result-pattern .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--lime); }
+  .result-body { font-size: 1.05rem; color: var(--ink-soft); margin-bottom: 8px; }
+  .result-body strong { color: var(--ink); font-weight: 600; }
+  .cta-stack { display: flex; flex-direction: column; gap: 11px; margin-top: 24px; }
+
+  .email-wrap {
+    margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line);
+  }
+  .email-wrap p { font-size: 0.95rem; color: var(--ink-soft); margin-bottom: 12px; }
+  .email-row { display: flex; gap: 9px; }
+  .email-input {
+    flex: 1; font-family: var(--body); font-size: 1rem;
+    padding: 13px 15px; border: 1.5px solid var(--line); border-radius: 11px;
+    background: #FCFDFB; color: var(--ink);
+  }
+  .email-input:focus { outline: none; border-color: var(--blue-deep); }
+  .email-done { font-size: 0.95rem; color: var(--blue-deep); font-weight: 600; }
+
+  .disclaimer {
+    margin-top: 22px; font-size: 0.82rem; color: var(--ink-soft);
+    line-height: 1.45; opacity: 0.9;
+  }
+
+  .restart {
+    background: none; border: none; cursor: pointer; color: var(--ink-soft);
+    font-size: 0.85rem; text-decoration: underline; margin-top: 18px; font-family: var(--body);
+  }
+  .restart:hover { color: var(--ink); }
+
+  /* Motion */
+  .fade-in { animation: fade .4s cubic-bezier(.4,0,.2,1); }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in { animation: none; }
+    .gauge-fill { transition: none; }
+  }
+
+  @media (max-width: 480px) {
+    .card { padding: 26px 20px 24px; border-radius: 15px; }
+    .email-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="contours" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <path d="M-50,120 C150,60 350,180 520,110 C650,55 760,140 860,90" />
+  <path d="M-50,200 C160,150 360,250 540,185 C660,140 770,210 860,170" />
+  <path d="M-50,290 C170,250 350,340 560,275 C680,235 780,300 860,265" />
+  <path d="M-50,385 C180,350 360,430 570,370 C690,335 790,395 860,365" />
+  <path d="M-50,480 C190,450 370,520 580,465 C700,435 800,490 860,465" />
+</svg>
+
+<main class="stage" id="stage" aria-live="polite"></main>
+
+<script>
+/* ============================================================
+   CONFIG  —  edit these three values, then host + embed.
+   ------------------------------------------------------------
+   SEAY_BOOKING_URL : your JaneApp link for Seay Wellness (chiropractic)
+   ROOT_BOOKING_URL : booking/consult link for Root Health NC (functional medicine)
+   LEAD_ENDPOINT    : leave "" for now. Later, paste your GoHighLevel inbound
+                      webhook URL here (or a Formspree URL as an interim).
+                      When empty, the optional email step still shows a
+                      thank-you but does not store the address anywhere.
+   ============================================================ */
+  var CONFIG = {
+    SEAY_BOOKING_URL: "https://seaywellness.janeapp.com/",
+    ROOT_BOOKING_URL: "PASTE_ROOT_HEALTH_BOOKING_LINK_HERE",
+    LEAD_ENDPOINT: ""
+  };
+
+  var QUESTIONS = [
+    {
+      text: "Where does it bother you most?",
+      hint: "Pick the closest fit.",
+      type: "single",
+      options: [
+        { label: "One specific spot, like my lower back, neck, or a shoulder", s: 2, t: 0 },
+        { label: "It moves around, or it's in a few places at once", s: 0, t: 2 },
+        { label: "Honestly, it's kind of everywhere", s: 0, t: 1 }
+      ]
+    },
+    {
+      text: "When did it start?",
+      type: "single",
+      options: [
+        { label: "After a specific injury, fall, or moment I can name", s: 2, t: 0 },
+        { label: "It crept in slowly over months or years", s: 0, t: 2 },
+        { label: "I can't really remember it not being there", s: 0, t: 1 }
+      ]
+    },
+    {
+      text: "What makes it worse?",
+      type: "single",
+      options: [
+        { label: "Certain movements or positions, or sitting too long", s: 2, t: 0 },
+        { label: "It's there pretty much no matter what I do", s: 0, t: 1 },
+        { label: "It flares when I'm stressed, tired, or run down", s: 0, t: 2 }
+      ]
+    },
+    {
+      text: "Have you had this looked at before?",
+      hint: "Be honest, this one tells us a lot.",
+      type: "single",
+      options: [
+        { label: "No, it's fairly new", s: 1, t: 0 },
+        { label: "Yes, it gets better, then it comes back", s: 0, t: 2 },
+        { label: "I've tried a lot of things without lasting relief", s: 0, t: 2 }
+      ]
+    },
+    {
+      text: "Besides the pain, are you also dealing with any of these?",
+      hint: "Select all that apply.",
+      type: "multi",
+      options: [
+        { label: "Low energy or fatigue", s: 0, t: 1, key: "fatigue" },
+        { label: "Brain fog or trouble focusing", s: 0, t: 1, key: "brain fog" },
+        { label: "Bloating, irregularity, or other gut issues", s: 0, t: 1, key: "gut issues" },
+        { label: "Trouble sleeping", s: 0, t: 1, key: "poor sleep" },
+        { label: "Getting sick more than I'd like", s: 0, t: 1, key: "frequent illness" },
+        { label: "Mood swings or feeling on edge", s: 0, t: 1, key: "mood changes" },
+        { label: "None of these", s: 1, t: 0, none: true }
+      ]
+    },
+    {
+      text: "How's your energy through a normal day?",
+      type: "single",
+      options: [
+        { label: "Steady, I feel like myself", s: 1, t: 0 },
+        { label: "It dips hard in the afternoon", s: 0, t: 1 },
+        { label: "I'm running on empty most days", s: 0, t: 2 }
+      ]
+    },
+    {
+      text: "And your digestion?",
+      type: "single",
+      options: [
+        { label: "No real complaints", s: 1, t: 0 },
+        { label: "Occasional bloating or irregularity", s: 0, t: 1 },
+        { label: "Ongoing issues I've learned to live with", s: 0, t: 2 }
+      ]
+    },
+    {
+      text: "What are you really hoping for?",
+      type: "single",
+      options: [
+        { label: "Get out of pain and back to moving", s: 1, t: 0 },
+        { label: "Finally understand why this keeps happening", s: 0, t: 1 },
+        { label: "Feel better overall, not just patch the pain", s: 0, t: 1 }
+      ]
+    }
+  ];
+
+  var DEPTH_WORDS = ["Surface", "Topsoil", "Going deeper", "Subsurface", "Bedrock", "Root level", "Root level", "Root level"];
+
+  var RESULTS = {
+    structural: {
+      tag: "Structural pattern",
+      h: "Your pain looks structural.",
+      body: function(flags){
+        return "Your answers point to a mechanical pattern: <strong>localized, traceable, and tied to how you move</strong>. That's the kind of pain that tends to respond well to hands-on chiropractic and applied kinesiology work, which is exactly what Seay Wellness does. The next step is a visit so we can find the specific source and start unwinding it.";
+      },
+      primary: { label: "Book a chiropractic visit", kind: "seay" },
+      secondary: null
+    },
+    terrain: {
+      tag: "Terrain signal",
+      h: "Your pain may be a signal from deeper down.",
+      body: function(flags){
+        var extra = flags.length
+          ? " You also flagged " + listFlags(flags) + ", which rarely travels with pain by accident."
+          : "";
+        return "The pain is real, but your answers suggest it isn't just about your spine." + extra + " When pain keeps coming back or shows up alongside fatigue, gut, or sleep issues, it's often <strong>your body's internal terrain asking for attention</strong>. Chasing the pain alone tends to bring it right back. Finding and clearing that root cause is the work Root Health NC focuses on.";
+      },
+      primary: { label: "Book a functional medicine consult", kind: "root" },
+      secondary: { label: "Or start with a chiropractic visit", kind: "seay" }
+    },
+    mixed: {
+      tag: "Both at play",
+      h: "You've got a structural piece and a deeper piece.",
+      body: function(flags){
+        var extra = flags.length ? " (you noted " + listFlags(flags) + ")" : "";
+        return "Your answers show a real <strong>structural pattern sitting on top of terrain signals</strong>" + extra + ". That combination is common, and it's a big reason pain like this keeps returning when only one side gets treated. The most direct path is to address both, which is the advantage of having chiropractic and functional medicine under one roof.";
+      },
+      primary: { label: "Book your first visit", kind: "seay" },
+      secondary: { label: "Add a functional medicine consult", kind: "root" }
+    }
+  };
+
+  function listFlags(flags){
+    if (flags.length === 1) return flags[0];
+    if (flags.length === 2) return flags[0] + " and " + flags[1];
+    return flags.slice(0, -1).join(", ") + ", and " + flags[flags.length - 1];
+  }
+
+  /* ---------- state + render ---------- */
+  /* answers[i] = { s, t, flags:[] }; totals are summed on demand so Back is safe */
+  var state = { index: -1, answers: [], multiSel: [] };
+  var stage = document.getElementById("stage");
+
+  function setGauge(pct, word){
+    var fill = document.getElementById("gaugeFill");
+    var depth = document.getElementById("gaugeDepth");
+    if (fill) fill.style.width = pct + "%";
+    if (depth) depth.textContent = word;
+  }
+
+  function gaugeHTML(pct, word){
+    return '<div class="gauge"><div class="gauge-row">' +
+      '<span class="gauge-label">From surface to root</span>' +
+      '<span class="gauge-depth" id="gaugeDepth">' + word + '</span></div>' +
+      '<div class="gauge-track"><div class="gauge-fill" id="gaugeFill" style="width:' + pct + '%"></div></div></div>';
+  }
+
+  function renderIntro(){
+    state = { index: -1, answers: [], multiSel: [] };
+    stage.innerHTML =
+      '<div class="card fade-in">' +
+        '<div class="eyebrow">A 2-minute root-cause check</div>' +
+        '<h1>What\u2019s really driving your pain?</h1>' +
+        '<p class="lede">Pain that keeps coming back is usually trying to tell you something. Answer eight quick questions and we\u2019ll point you toward the kind of care that actually fits what you\u2019re dealing with.</p>' +
+        '<button class="btn btn-primary btn-full" id="startBtn">Start the assessment</button>' +
+      '</div>';
+    document.getElementById("startBtn").onclick = function(){ state.index = 0; renderQuestion(); };
+  }
+
+  function renderQuestion(){
+    var q = QUESTIONS[state.index];
+    state.multiSel = [];
+    var pct = Math.round((state.index / QUESTIONS.length) * 100) + 6;
+    var word = DEPTH_WORDS[state.index] || "Root level";
+
+    var optsHTML = q.options.map(function(o, i){
+      return '<button class="opt" data-i="' + i + '">' +
+        '<span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
+        '<span>' + o.label + '</span></button>';
+    }).join("");
+
+    var multiActions = q.type === "multi"
+      ? '<div class="actions"><button class="btn btn-primary" id="contBtn">Continue</button></div>'
+      : '';
+
+    stage.innerHTML =
+      gaugeHTML(pct, word) +
+      '<div class="card fade-in">' +
+        '<div class="eyebrow">Question ' + (state.index + 1) + ' of ' + QUESTIONS.length + '</div>' +
+        '<div class="q-text">' + q.text + '</div>' +
+        (q.hint ? '<div class="q-hint">' + q.hint + '</div>' : '<div style="height:14px"></div>') +
+        '<div class="options">' + optsHTML + '</div>' +
+        multiActions +
+        (state.index > 0 ? '<button class="back" id="backBtn"><span>\u2190</span> Back</button>' : '') +
+      '</div>';
+
+    var btns = stage.querySelectorAll(".opt");
+    btns.forEach(function(btn){
+      btn.onclick = function(){
+        var i = +btn.getAttribute("data-i");
+        if (q.type === "single") {
+          btns.forEach(function(b){ b.classList.remove("selected"); });
+          btn.classList.add("selected");
+          state.answers[state.index] = { s: q.options[i].s, t: q.options[i].t, flags: [], sel: [i] };
+          setTimeout(next, 230);
+        } else {
+          handleMulti(q, i, btn, btns);
+        }
+      };
+    });
+
+    // restore a prior answer if the user navigated back
+    var prior = state.answers[state.index];
+    if (prior && prior.sel) {
+      state.multiSel = q.type === "multi" ? prior.sel.slice() : [];
+      prior.sel.forEach(function(si){
+        var b = stage.querySelector('.opt[data-i="' + si + '"]');
+        if (b) b.classList.add("selected");
+      });
+    }
+
+    var contBtn = document.getElementById("contBtn");
+    if (contBtn) contBtn.onclick = function(){ commitMulti(q); next(); };
+
+    var backBtn = document.getElementById("backBtn");
+    if (backBtn) backBtn.onclick = goBack;
+
+    setGauge(pct, word);
+  }
+
+  function handleMulti(q, i, btn, allBtns){
+    var opt = q.options[i];
+    if (opt.none) {
+      // exclusive "none" toggles everything else off
+      var on = !btn.classList.contains("selected");
+      allBtns.forEach(function(b){ b.classList.remove("selected"); });
+      if (on) btn.classList.add("selected");
+      state.multiSel = on ? [i] : [];
+      return;
+    }
+    // turning a real option on clears "none"
+    allBtns.forEach(function(b){
+      var bi = +b.getAttribute("data-i");
+      if (q.options[bi].none) b.classList.remove("selected");
+    });
+    state.multiSel = state.multiSel.filter(function(x){ return !q.options[x].none; });
+    btn.classList.toggle("selected");
+    var pos = state.multiSel.indexOf(i);
+    if (pos === -1) state.multiSel.push(i); else state.multiSel.splice(pos, 1);
+  }
+
+  function commitMulti(q){
+    var rec = { s: 0, t: 0, flags: [], sel: state.multiSel.slice() };
+    state.multiSel.forEach(function(i){
+      var o = q.options[i];
+      rec.s += o.s;
+      rec.t += o.t;
+      if (o.key) rec.flags.push(o.key);
+    });
+    state.answers[state.index] = rec;
+  }
+
+  function next(){
+    state.index++;
+    if (state.index >= QUESTIONS.length) renderResult();
+    else renderQuestion();
+  }
+
+  function goBack(){
+    if (state.index > 0) state.index--;
+    renderQuestion();
+  }
+
+  function totals(){
+    var s = 0, t = 0, flags = [];
+    state.answers.forEach(function(a){
+      if (!a) return;
+      s += a.s; t += a.t;
+      if (a.flags) flags = flags.concat(a.flags);
+    });
+    return { s: s, t: t, flags: flags };
+  }
+
+  function bucket(tot){
+    var diff = tot.s - tot.t;
+    if (diff >= 2) return "structural";
+    if (diff <= -2) return "terrain";
+    return "mixed";
+  }
+
+  function renderResult(){
+    var tot = totals();
+    var key = bucket(tot);
+    var r = RESULTS[key];
+    var flags = tot.flags.slice();
+
+    var secondaryHTML = r.secondary
+      ? '<button class="btn btn-ghost btn-full" data-kind="' + r.secondary.kind + '">' + r.secondary.label + '</button>'
+      : '';
+
+    stage.innerHTML =
+      gaugeHTML(100, "Root level") +
+      '<div class="card fade-in">' +
+        '<div class="result-pattern"><span class="dot"></span>' + r.tag + '</div>' +
+        '<h1>' + r.h + '</h1>' +
+        '<p class="result-body">' + r.body(flags) + '</p>' +
+        '<div class="cta-stack">' +
+          '<button class="btn btn-cta btn-full" data-kind="' + r.primary.kind + '">' + r.primary.label + '</button>' +
+          secondaryHTML +
+        '</div>' +
+        '<div class="email-wrap" id="emailWrap">' +
+          '<p>Want your results and a few next steps emailed to you?</p>' +
+          '<div class="email-row">' +
+            '<input class="email-input" id="emailInput" type="email" inputmode="email" placeholder="you@email.com" />' +
+            '<button class="btn btn-primary" id="emailBtn">Send it</button>' +
+          '</div>' +
+        '</div>' +
+        '<p class="disclaimer">This is a quick self-assessment, not a diagnosis. The real answers come from a visit, where we look at the whole picture with you.</p>' +
+        '<button class="restart" id="restartBtn">Start over</button>' +
+      '</div>';
+
+    setGauge(100, "Root level");
+
+    stage.querySelectorAll("[data-kind]").forEach(function(b){
+      b.onclick = function(){
+        var k = b.getAttribute("data-kind");
+        var url = k === "root" ? CONFIG.ROOT_BOOKING_URL : CONFIG.SEAY_BOOKING_URL;
+        window.open(url, "_blank", "noopener");
+      };
+    });
+
+    document.getElementById("emailBtn").onclick = submitEmail.bind(null, key);
+    document.getElementById("emailInput").addEventListener("keydown", function(e){
+      if (e.key === "Enter") submitEmail(key);
+    });
+    document.getElementById("restartBtn").onclick = renderIntro;
+  }
+
+  function submitEmail(resultKey){
+    var input = document.getElementById("emailInput");
+    var email = (input.value || "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      input.style.borderColor = "var(--blue-deep)";
+      input.focus();
+      return;
+    }
+    var tot = totals();
+    var payload = {
+      email: email,
+      result: resultKey,
+      structural_score: tot.s,
+      terrain_score: tot.t,
+      flagged: tot.flags,
+      source: "seay-pain-assessment",
+      submitted_at: new Date().toISOString()
+    };
+
+    if (CONFIG.LEAD_ENDPOINT) {
+      fetch(CONFIG.LEAD_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(function(){ /* fail quietly; user already saw success */ });
+    } else {
+      console.log("[lead captured locally — no LEAD_ENDPOINT set yet]", payload);
+    }
+
+    document.getElementById("emailWrap").innerHTML =
+      '<p class="email-done">Got it. Check your inbox shortly, and we\u2019ll see you soon.</p>';
+  }
+
+  renderIntro();
+</script>
+</body>
+</html>
