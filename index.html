@@ -599,11 +599,18 @@
           secondaryHTML +
         '</div>' +
         '<div class="email-wrap" id="emailWrap">' +
-          '<p>Want your results and a few next steps emailed to you?</p>' +
+          '<p>Want your results and a few next steps sent to you?</p>' +
+          '<input class="email-input" id="nameInput" type="text" autocomplete="name" placeholder="Full name" style="width:100%;margin-bottom:9px" />' +
+          '<input class="email-input" id="phoneInput" type="tel" autocomplete="tel" inputmode="tel" placeholder="Phone number" style="width:100%;margin-bottom:9px" />' +
           '<div class="email-row">' +
             '<input class="email-input" id="emailInput" type="email" inputmode="email" placeholder="you@email.com" />' +
             '<button class="btn btn-primary" id="emailBtn">Send it</button>' +
           '</div>' +
+          '<label class="consent-row" style="display:flex;align-items:flex-start;gap:9px;margin-top:12px;font-size:0.86rem;line-height:1.4;color:var(--ink-soft);cursor:pointer">' +
+            '<input type="checkbox" id="consentInput" style="margin-top:2px;flex:0 0 auto;width:17px;height:17px;accent-color:var(--blue-deep)" />' +
+            '<span>I agree to be contacted by Seay Wellness and Root Health by phone, text, or email about my results and care.</span>' +
+          '</label>' +
+          '<div id="leadError" role="alert" style="display:none;color:var(--blue-deep);font-size:0.85rem;font-weight:600;margin-top:10px"></div>' +
         '</div>' +
         '<p class="disclaimer">This is a quick self-assessment, not a diagnosis. The real answers come from a visit, where we look at the whole picture with you.</p>' +
         '<button class="restart" id="restartBtn">Start over</button>' +
@@ -627,16 +634,34 @@
   }
 
   function submitEmail(resultKey){
+    var nameInput = document.getElementById("nameInput");
+    var phoneInput = document.getElementById("phoneInput");
     var input = document.getElementById("emailInput");
+    var consentInput = document.getElementById("consentInput");
+    var errorEl = document.getElementById("leadError");
+
+    var name = (nameInput.value || "").trim();
+    var phone = (phoneInput.value || "").trim();
     var email = (input.value || "").trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      input.style.borderColor = "var(--blue-deep)";
-      input.focus();
-      return;
+    var consent = !!(consentInput && consentInput.checked);
+
+    function failField(msg, field){
+      if (errorEl) { errorEl.textContent = msg; errorEl.style.display = "block"; }
+      if (field) { field.style.borderColor = "var(--blue-deep)"; field.focus(); }
     }
+
+    if (!name) { failField("Please enter your name.", nameInput); return; }
+    if (!phone) { failField("Please enter your phone number.", phoneInput); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { failField("Please enter a valid email address.", input); return; }
+    if (!consent) { failField("Please check the box to agree to be contacted.", null); return; }
+    if (errorEl) errorEl.style.display = "none";
+
     var tot = totals();
     var payload = {
+      name: name,
+      phone: phone,
       email: email,
+      consent: consent,
       result: resultKey,
       structural_score: tot.s,
       terrain_score: tot.t,
