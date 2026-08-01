@@ -302,6 +302,17 @@
     LEAD_ENDPOINT: "https://formspree.io/f/xkolgwjj"
   };
 
+  /* ============================================================
+     RELAY LEAD CAPTURE. Same posture and pattern as the Root Cause
+     Unlocked funnel: fire-and-forget, never blocks results, and runs
+     alongside the Formspree capture above (it does not replace it).
+     The intake_key is public by design, same posture as a Formspree
+     form id.
+     ============================================================ */
+  const RELAY_INTAKE_URL = 'https://ckxinvzkaxxqllzjmspj.supabase.co/functions/v1/intake';
+  const RELAY_INTAKE_KEY = '97TfHjb8duWiZayVd6dzVnrt';
+  const RELAY_PROGRAM = 'msk';
+
   var QUESTIONS = [
     {
       text: "Where does it bother you most?",
@@ -678,6 +689,36 @@
       }).catch(function(){ /* fail quietly; user already saw success */ });
     } else {
       console.log("[lead captured locally — no LEAD_ENDPOINT set yet]", payload);
+    }
+
+    /* Relay lead capture. Additive alongside Formspree, fire-and-forget,
+       never blocks the thank-you. Only sent with consent checked (the
+       consent checkbox covers phone, text, and email contact). This quiz
+       has no urgent red-flag screen, so every lead posts the standard
+       msk program with red_flag false. */
+    if (consent) {
+      var firstName = name.split(/\s+/)[0];
+      var relayScore = Math.max(tot.s, tot.t);
+      fetch(RELAY_INTAKE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intake_key: RELAY_INTAKE_KEY, email: email, name: firstName,
+          phone: phone || undefined,
+          consent: true, sms_consent: !!phone,
+          program: RELAY_PROGRAM, source: "pain_assessment",
+          score: relayScore,
+          merge_fields: {
+            first_name: firstName,
+            score: relayScore,
+            red_flag: false,
+            result_bucket: resultKey,
+            structural_score: tot.s,
+            terrain_score: tot.t,
+            terrain_flags: tot.flags.join(", ")
+          }
+        })
+      }).catch(function(){ /* fail quietly; user already saw success */ });
     }
 
     document.getElementById("emailWrap").innerHTML =
